@@ -1,0 +1,58 @@
+pipeline {
+    agent any
+
+    environment {
+        GIT_REPO = 'https://github.com/pulkit2003/Git_milestone2'
+        BRANCH = 'main'
+        MAVEN_HOME = tool name: 'maven', type: 'maven'
+        WAR_FILE = 'target/Git_milestone2.war'
+        APP_NODE = '98.81.130.120'
+        ANSIBLE_PLAYBOOK = 'ansible/tomcat_deploy.yml'
+        SSH_KEY = '/home/ubuntu/.ssh/id_rsa' // Adjust if needed
+        TOMCAT_INSTALL_DIR = '/home/ubuntu/tomcat'
+    }
+
+    stages {
+        stage('Checkout Code') {
+            steps {
+                git branch: "${BRANCH}", url: "${GIT_REPO}"
+            }
+        }
+
+        stage('Build & Package') {
+            steps {
+                withEnv(["PATH+MAVEN=${MAVEN_HOME}/bin"]) {
+                    sh 'mvn compile test package'
+                }
+            }
+        }
+
+        stage('Install Tomcat using Ansible') {
+            steps {
+                ansiblePlaybook(
+                    playbook: "${ANSIBLE_PLAYBOOK}",
+                    inventory: "${APP_NODE},",
+                    extras: "-u ubuntu --private-key ${SSH_KEY} -e tomcat_dir=${TOMCAT_INSTALL_DIR} -e war_file=${WORKSPACE}/${WAR_FILE}"
+                )
+            }
+        }
+
+        stage('Deploy WAR to Tomcat') {
+            steps {
+                echo "Deployment done by the above Ansible playbook"
+            }
+        }
+    }
+
+    post {
+        always {
+            cleanWs()
+        }
+        success {
+            echo 'Pipeline executed successfully!'
+        }
+        failure {
+            echo 'Pipeline failed!'
+        }
+    }
+}
