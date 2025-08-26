@@ -1,0 +1,41 @@
+---
+- hosts: all
+  become: yes
+  vars:
+    tomcat_version: "9.0.80"
+    tomcat_archive: "apache-tomcat-9.0.80.tar.gz"
+    tomcat_url: "https://downloads.apache.org/tomcat/tomcat-9/v{{ tomcat_version }}/bin/{{ tomcat_archive }}"
+    tomcat_dir: "/home/ubuntu/tomcat"
+    war_file: ""
+
+  tasks:
+    - name: Install Java
+      apt:
+        name: openjdk-11-jdk
+        state: present
+        update_cache: yes
+
+    - name: Download Tomcat
+      get_url:
+        url: "{{ tomcat_url }}"
+        dest: "/tmp/{{ tomcat_archive }}"
+
+    - name: Extract Tomcat
+      unarchive:
+        src: "/tmp/{{ tomcat_archive }}"
+        dest: "{{ tomcat_dir }}"
+        remote_src: yes
+        creates: "{{ tomcat_dir }}/apache-tomcat-{{ tomcat_version }}"
+
+    - name: Copy WAR file to Tomcat webapps
+      copy:
+        src: "{{ war_file }}"
+        dest: "{{ tomcat_dir }}/apache-tomcat-{{ tomcat_version }}/webapps/"
+
+    - name: Make startup script executable
+      file:
+        path: "{{ tomcat_dir }}/apache-tomcat-{{ tomcat_version }}/bin/startup.sh"
+        mode: '0755'
+
+    - name: Start Tomcat
+      shell: "{{ tomcat_dir }}/apache-tomcat-{{ tomcat_version }}/bin/startup.sh"
