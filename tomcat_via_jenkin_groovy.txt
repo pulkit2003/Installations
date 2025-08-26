@@ -1,0 +1,25 @@
+pipeline { 
+agent any 
+stages { 
+stage('Checkout Code') { 
+steps {  git 'https://github.com/akshu20791/addressbook-cicd-project.git' } 
+} 
+stage("Compile") {
+steps { sh 'mvn -B -e compile' } 
+} 
+stage("Test") { 
+steps { sh 'mvn -B test' } 
+} 
+stage("Package") { 
+steps { sh 'mvn -B package' } 
+} 
+stage('Deploy WAR to Tomcat') { 
+steps { sshagent(['tomcat-ssh']) 
+{ sh ''' # Copy WAR to Tomcat webapps scp -o StrictHostKeyChecking=no target/addressbook.war ubuntu@98.81.126.197:/home/ubuntu/apache-tomcat-9.0.108/webapps/ 
+# Restart Tomcat ssh -o StrictHostKeyChecking=no ubuntu@98.81.126.197 " cd /home/ubuntu/apache-tomcat-9.0.108/bin && 
+./shutdown.sh || true && ./startup.sh " ''' } 
+}
+}
+}
+}
+
