@@ -1,0 +1,50 @@
+pipeline {
+    agent any
+
+    tools {
+        // Defines the Maven tool to be used.
+        // Ensure that a Maven installation is configured in Jenkins global tool configuration.
+        maven 'Maven_3.8.6'
+    }
+
+    stages {
+        stage('Checkout') {
+            steps {
+                // Checkout code from your GitHub repository.
+                // Replace 'your-github-repo-url.git' with the actual URL.
+                git url: 'https://github.com/your-username/your-repo.git', credentialsId: 'github-credentials-id'
+            }
+        }
+
+        stage('Build and Test') {
+            steps {
+                // Compile, test, and package the application using Maven.
+                // The 'mvn' command uses the Maven tool configured above.
+                sh 'mvn clean package'
+            }
+        }
+
+        stage('Install Tomcat with Ansible') {
+            steps {
+                // Use Ansible to automate Tomcat 9 installation.
+                // Replace 'ansible-playbook-path/install_tomcat.yml' with your actual playbook path.
+                // Replace 'your-ansible-inventory' with your inventory file.
+                ansiblePlaybook playbook: 'ansible-playbook-path/install_tomcat.yml', inventory: 'your-ansible-inventory'
+            }
+        }
+
+        stage('Deploy to Tomcat') {
+            steps {
+                // Deploy the generated WAR file to Tomcat.
+                // The 'tomcat' step is provided by the Deploy to Container Plugin.
+                // Replace 'your-war-file.war' with your generated WAR file path.
+                // Replace 'your-tomcat-server' with the name of the Tomcat server configured in Jenkins.
+                tomcat(
+                    credentialsId: 'tomcat-credentials-id',
+                    war: 'target/your-war-file.war',
+                    url: 'http://your-application-node-ip:8080/manager/text'
+                )
+            }
+        }
+    }
+}
