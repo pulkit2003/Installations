@@ -1,0 +1,102 @@
+---
+- name: Install Apache Tomcat 9
+  hosts: all
+  become: yes
+  vars:
+    tomcat_version: 9.0.65
+    tomcat_user: tomcat
+    tomcat_group: tomcat
+    install_dir: /opt/tomcat
+
+  tasks:
+    - name: Ensure Java is installed
+      apt:
+        name: default-jdk
+        state: present
+      tags: java
+
+    - name: Create Tomcat group
+      group:
+        name: "{{ tomcat_group }}"
+        state: present
+      tags: users
+
+    - name: Create Tomcat user
+      user:
+        name: "{{ tomcat_user }}"
+        group: "{{ tomcat_group }}"
+        shell: /bin/false
+      tags: users
+
+    - name: Download Tomcat tarball
+      get_url:
+        url: "https://downloads.apache.org/tomcat/tomcat-9/v{{ tomcat_version }}/bin/apache-tomcat-{{ tomcat_version}}.tar.gz"
+        dest: /tmp/apache-tomcat-{{ tomcat_version }}.tar.gz
+        mode: '0644'
+      tags: download
+
+    - name: Create installation directory
+      file:
+        path: "{{ install_dir }}"
+        state: directory
+      tags: setup
+
+    - name: Extract Tomcat archive
+      unarchive:
+        src: /tmp/apache-tomcat-{{ tomcat_version }}.tar.gz
+        dest: "{{ install_dir }}"
+        remote_src: yes
+        creates: "{{ install_dir }}/apache-tomcat-{{ tomcat_version }}"
+      tags: setup
+
+    - name: Symlink tomcat latest
+      file:
+        src: "{{ install_dir }}/apache-tomcat-{{ tomcat_version }}"
+        dest: "{{ install_dir }}/latest"
+        state: link
+      tags: setup
+
+    - name: Change ownership of Tomcat installation
+      file:
+        path: "{{ install_dir }}"
+        state: directory
+        recurse: yes
+        owner: "{{ tomcat_user }}"
+        group: "{{ tomcat_group }}"
+      tags: permissions
+
+    - name: Create systemd service file for Tomcat
+      copy:
+        dest: /etc/systemd/system/tomcat.service
+        content: |
+          [Unit]
+          Description=Apache Tomcat 9
+          After=network.target
+
+          [Service]
+          Type=forking
+          User={{ tomcat_user }}
+          Group={{ tomcat_group }}
+          Environment=CATALINA_PID={{ install_dir }}/latest/temp/tomcat.pid
+          Environment=CATALINA_HOME={{ install_dir }}/latest
+          Environment=CATALINA_BASE={{ install_dir }}/latest
+          ExecStart={{ install_dir }}/latest/bin/startup.sh
+          ExecStop={{ install_dir }}/latest/bin/shutdown.sh
+          Restart=on-failure
+
+          [Install]
+          WantedBy=multi-user.target
+      notify: restart tomcat
+      tags: service
+
+    - name: Enable Tomcat service
+      systemd:
+        name: tomcat
+        enabled: yes
+      tags: service
+
+  handlers:
+    - name: restart tomcat
+      systemd:
+        name: tomcat
+        state: restarted
