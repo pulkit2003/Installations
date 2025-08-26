@@ -1,0 +1,24 @@
+#add IP's of node
+vi /etc/ansible/hosts  
+[ansiblegroup]
+Privateip of node1
+Privateip of node2
+
+# TO DO ON BOTH NODE AND MASTER
+#Add user devops
+
+#Make file changes
+vi /etc/ssh/sshd_config
+
+#More changes
+vi /etc/ssh/sshd_config.d/60-cloudimg-settings.conf
+
+#Restart ssh
+service ssh restart
+
+# TO DO ON MASTER ONLY 
+su – devops
+ssh-keygen
+ls -a
+cd .ssh
+ssh-copy-id devops@privateipofnode1
