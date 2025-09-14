@@ -8,7 +8,7 @@ eksctl create nodegroup \
   --nodes-max 2 \
   --node-volume-size 20 \
   --ssh-access \
-  --ssh-public-key Pulkit-New-Kp \
+  --ssh-public-key <> \
   --managed \
   --asg-access \
   --external-dns-access \
@@ -16,5 +16,4 @@ eksctl create nodegroup \
   --appmesh-access \
   --alb-ingress-access \
   --node-private-networking \
-  --subnet-ids subnet-00416eb02730bee7f,subnet-054ba5508ec2c9bac \
-  --tags "Environment=dev"
+  --subnet-ids <>,<> 
